@@ -1,0 +1,8 @@
+# .gitignore
+data/
+*.pdf
+*.xls
+*.xlsx
+tests/sample_data/
+tests/credit_notes/
+tests/sales_data/

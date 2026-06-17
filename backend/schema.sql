@@ -1,0 +1,1 @@
+-- PostgreSQL database schema for Expiry Return Reminder System
