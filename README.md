@@ -21,28 +21,8 @@ A specialized Python-based operations system designed for a wholesale pharmaceut
 * **Tech Stack**: `pdfplumber`, `openpyxl`, `pandas`, `RapidFuzz`
 
 ### Module 2: Expiry Return Reminder System
-* **Purpose**: Scan sales history in PostgreSQL, identify retailer-batch pairings approaching expiry within a configurable return window (default 90 days), and send one-time proactive WhatsApp reminders.
-* **Tech Stack**: `pandas`, `APScheduler`, `Twilio WhatsApp API`, `PostgreSQL`, `psycopg2`/`SQLAlchemy`, `python-dotenv`
-
----
-
-## 🚦 Implementation Checklist
-
-- [x] **Task 1: Project Scaffold** - Directory structure and empty placeholder files.
-- [ ] **Task 2: Environment Setup** - `.env.example` and `requirements.txt`.
-- [ ] **Task 3: Dummy Data Generator** - Punjabi-localized data generator script.
-- [ ] **Task 4: parse_document() Excel** - Excel parsing functionality.
-- [ ] **Task 5: parse_document() PDF** - PDF parsing extraction.
-- [ ] **Task 6: fuzzy_match_items()** - RapidFuzz match implementation.
-- [ ] **Task 7: detect_discrepancies()** - Discrepancy rule evaluation.
-- [ ] **Task 8: generate_report()** - CSV and styled HTML reporting.
-- [ ] **Task 9: CLI Entrypoint (Module 1)** - End-to-end reconciliation CLI.
-- [ ] **Task 10: PostgreSQL Schema** - Migration and DB initialization.
-- [ ] **Task 11: Excel Data Loader** - Sales data importer for Marg ERP Excel files.
-- [ ] **Task 12: get_expiring_batches()** - Expiry database query builder.
-- [ ] **Task 13: format_reminder_message()** - High-quality localized templates.
-- [ ] **Task 14: WhatsApp & Logging** - Twilio messaging and notification deduplication.
-- [ ] **Task 15: Scheduler Setup** - APScheduler BackgroundScheduler setup.
+* **Purpose**: Scan sales history in a local SQLite database, identify retailer-batch pairings approaching expiry within a configurable return window (default 90 days), and send one-time proactive WhatsApp reminders.
+* **Tech Stack**: `pandas`, `APScheduler`, `Twilio WhatsApp API`, `SQLite` (via Python standard `sqlite3`), `python-dotenv`
 
 ---
 

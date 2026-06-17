@@ -1,0 +1,11 @@
+# Reconciliation Engine dependencies
+pandas>=2.0.0
+pdfplumber>=0.10.0
+openpyxl>=3.1.0
+RapidFuzz>=3.0.0
+Jinja2>=3.1.0
+
+# Expiry Return Reminder System dependencies
+APScheduler>=3.10.0
+twilio>=8.0.0
+python-dotenv>=1.0.0
