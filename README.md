@@ -60,3 +60,31 @@ A specialized Python-based operations system designed for a wholesale pharmaceut
 ├── README.md
 └── requirements.txt
 ```
+
+---
+
+## 🔧 Core Services API Reference
+
+The system core features implemented so far are:
+
+### 1. Document Parser (`backend/services/parser.py`)
+Reads and normalizes credit note and voucher documents (Excel `.xlsx`/`.xls` and PDF `.pdf`).
+* **Function**: `parse_document(file_path: str) -> pd.DataFrame`
+* **Output Schema**: `product_name`, `batch_no`, `mrp`, `qty`, `amount`
+* **Features**: Dynamic header identification (multi-row headers), cell sanitization, number formatting, missing fields graceful NaN fill.
+
+### 2. Fuzzy Matcher (`backend/services/matcher.py`)
+Aligns items between voucher request lists and wholesaler credit notes.
+* **Function**: `fuzzy_match_items(df_voucher: pd.DataFrame, df_credit: pd.DataFrame, threshold: int = 85) -> pd.DataFrame`
+* **Features**: Fuzzy product name similarity scoring using RapidFuzz, prioritized exact/fuzzy batch number matching, full outer join return format.
+
+### 3. Discrepancy Detector (`backend/services/discrepancy.py`)
+Identifies financial and logistical mismatches between matched pairs.
+* **Function**: `detect_discrepancies(df_matched: pd.DataFrame) -> pd.DataFrame`
+* **Discrepancy Labels**:
+  * `MATCHED_OK`: Fully matches.
+  * `MRP_MISMATCH`: Prices differ.
+  * `QTY_MISMATCH`: Quantities differ.
+  * `AMOUNT_MISMATCH`: Calculated or total amounts differ.
+  * `MISSING_IN_CREDIT_NOTE`: Wholesaler omitted the item.
+  * `MISSING_IN_VOUCHER`: Retailer did not submit the item.
