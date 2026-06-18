@@ -125,7 +125,12 @@ def _normalize_excel_df(df: pd.DataFrame) -> pd.DataFrame:
 def _parse_pdf(file_path: str) -> pd.DataFrame:
     """Helper to parse a PDF file using pdfplumber."""
     import pdfplumber
+    import re
     all_rows = []
+    
+    # Track mapping across pages/tables for continuation tables
+    global_header_mapping = {}
+    expected_cols_count = None
     
     with pdfplumber.open(file_path) as pdf:
         for page_idx, page in enumerate(pdf.pages):
@@ -141,6 +146,7 @@ def _parse_pdf(file_path: str) -> pd.DataFrame:
                 # 1. Detect header mapping dynamically by scanning top rows
                 header_mapping = {}
                 last_header_row_idx = -1
+                max_row_matches = 0
                 
                 # Scan top rows to detect headers (handles multi-row headers)
                 for row_idx, row in enumerate(table[:10]):
@@ -151,13 +157,14 @@ def _parse_pdf(file_path: str) -> pd.DataFrame:
                     ]
                     
                     row_matches = 0
+                    row_mapping = {}
                     for cell_idx, cell in enumerate(cleaned_row):
                         if not cell:
                             continue
                         
                         # Try exact match first
                         if cell in COLUMN_MAPPING:
-                            header_mapping[COLUMN_MAPPING[cell]] = cell_idx
+                            row_mapping[COLUMN_MAPPING[cell]] = cell_idx
                             row_matches += 1
                             continue
                             
@@ -165,40 +172,47 @@ def _parse_pdf(file_path: str) -> pd.DataFrame:
                         matched = False
                         for key in sorted(COLUMN_MAPPING.keys(), key=len, reverse=True):
                             if key in cell:
-                                header_mapping[COLUMN_MAPPING[key]] = cell_idx
+                                row_mapping[COLUMN_MAPPING[key]] = cell_idx
                                 row_matches += 1
                                 matched = True
                                 break
                             
+                    max_row_matches = max(max_row_matches, row_matches)
                     if row_matches >= 2:
+                        header_mapping.update(row_mapping)
                         last_header_row_idx = max(last_header_row_idx, row_idx)
                         
+                # 2. Determine if we should parse this table
                 if last_header_row_idx == -1:
-                    logger.warning(f"No clear header detected on page {page_idx + 1}. Defaulting to row 0.")
-                    last_header_row_idx = 0
-                    for cell_idx, cell in enumerate(table[0]):
-                        if cell:
-                            cell_cleaned = str(cell).strip().lower().replace('\n', ' ')
-                            if cell_cleaned in COLUMN_MAPPING:
-                                header_mapping[COLUMN_MAPPING[cell_cleaned]] = cell_idx
-                            else:
-                                for key in sorted(COLUMN_MAPPING.keys(), key=len, reverse=True):
-                                    if key in cell_cleaned:
-                                        header_mapping[COLUMN_MAPPING[key]] = cell_idx
-                                        break
+                    # No header detected on this table.
+                    # If we have a global mapping and column count matches, it's a continuation table.
+                    if global_header_mapping and expected_cols_count is not None and len(table[0]) == expected_cols_count:
+                        header_mapping = global_header_mapping.copy()
+                        last_header_row_idx = -1  # start parsing from row 0
+                    elif max_row_matches > 0:
+                        # Fallback default if we have some header match but not >= 2
+                        logger.warning(f"Weak header detected on page {page_idx + 1}. Defaulting to row 0.")
+                        last_header_row_idx = 0
+                        
+                        # Set fallback defaults for indices if not detected
+                        if "product_name" not in header_mapping:
+                            header_mapping["product_name"] = 1
+                        if "batch_no" not in header_mapping:
+                            header_mapping["batch_no"] = 2
+                        
+                        default_indices = {"mrp": 3, "qty": 4, "amount": 5}
+                        for col, def_idx in default_indices.items():
+                            if col not in header_mapping:
+                                header_mapping[col] = min(def_idx, len(table[0]) - 1)
+                    else:
+                        # Unrecognized/summary table, skip it
+                        continue
+                else:
+                    # Successfully detected headers, save as global mapping
+                    global_header_mapping = header_mapping.copy()
+                    expected_cols_count = len(table[0])
                 
-                # Set fallback defaults for indices if not detected
-                if "product_name" not in header_mapping:
-                    header_mapping["product_name"] = 1
-                if "batch_no" not in header_mapping:
-                    header_mapping["batch_no"] = 2
-                
-                default_indices = {"mrp": 3, "qty": 4, "amount": 5}
-                for col, def_idx in default_indices.items():
-                    if col not in header_mapping:
-                        header_mapping[col] = min(def_idx, len(table[0]) - 1)
-                
-                # 2. Extract data rows
+                # 3. Extract data rows
                 for row in table[last_header_row_idx + 1:]:
                     if not any(row):
                         continue
@@ -246,7 +260,22 @@ def _parse_pdf(file_path: str) -> pd.DataFrame:
                             
                     # Filter out rows with no product name or batch
                     p_name = row_data.get("product_name")
-                    if not p_name or p_name == "nan" or p_name == "":
+                    if pd.isna(p_name) or not p_name or str(p_name).strip().lower() in ["nan", "none", ""]:
+                        # Check if we can merge this with the last parsed row (split row across pages)
+                        if all_rows and (pd.isna(all_rows[-1]["qty"]) or pd.isna(all_rows[-1]["amount"])):
+                            for k, v in row_data.items():
+                                if pd.notna(v) and str(v).strip().lower() not in ["nan", "none", ""]:
+                                    # Only overwrite if target is NaN
+                                    if pd.isna(all_rows[-1][k]):
+                                        all_rows[-1][k] = v
+                            continue
+                        else:
+                            continue
+                    
+                    # Filter out pure numeric names (like totals: e.g. "24,809.41")
+                    p_name_str = str(p_name)
+                    clean_name = p_name_str.replace(",", "").replace(".", "").replace(" ", "")
+                    if clean_name.isdigit():
                         continue
                         
                     all_rows.append(row_data)

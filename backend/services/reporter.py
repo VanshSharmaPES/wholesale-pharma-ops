@@ -73,6 +73,7 @@ HTML_REPORT_TEMPLATE = """
             margin: 0 0 10px 0;
             background: linear-gradient(135deg, #4f46e5, #7c3aed);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -98,12 +99,20 @@ HTML_REPORT_TEMPLATE = """
             padding: 24px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
         }
 
         .card:hover {
             transform: translateY(-5px);
             box-shadow: 0 12px 20px -8px rgba(79, 70, 229, 0.15);
             border-color: rgba(79, 70, 229, 0.3);
+        }
+
+        .card.active {
+            border-color: #4f46e5;
+            box-shadow: 0 12px 20px -8px rgba(79, 70, 229, 0.25);
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateY(-2px) scale(1.02);
         }
 
         .card-title {
@@ -214,6 +223,63 @@ HTML_REPORT_TEMPLATE = """
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Source Files Container & Link Cards */
+        .source-files-container {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .file-link-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px 18px;
+            text-decoration: none;
+            color: var(--text-primary);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 250px;
+        }
+
+        .file-link-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(79, 70, 229, 0.4);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.1);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+        }
+
+        .file-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .file-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .file-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #4f46e5;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -223,32 +289,58 @@ HTML_REPORT_TEMPLATE = """
             <div class="meta-info">
                 Wholesale Shop: Amritsar Branch &bull; Generated: {{ timestamp }} &bull; Total Checked Rows: {{ total_items }}
             </div>
+            {% if voucher_url or credit_note_url %}
+            <div class="source-files-container">
+                {% if voucher_url %}
+                <a href="{{ voucher_url }}" target="_blank" class="file-link-card">
+                    <span class="file-icon">📄</span>
+                    <div class="file-details">
+                        <span class="file-label">Source Retail Voucher</span>
+                        <span class="file-name">{{ voucher_filename }}</span>
+                    </div>
+                </a>
+                {% endif %}
+                {% if credit_note_url %}
+                <a href="{{ credit_note_url }}" target="_blank" class="file-link-card">
+                    <span class="file-icon">🧾</span>
+                    <div class="file-details">
+                        <span class="file-label">Wholesaler Credit Note</span>
+                        <span class="file-name">{{ credit_note_filename }}</span>
+                    </div>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
         </header>
 
         <div class="summary-grid">
-            <div class="card">
+            <div class="card" data-status="all">
                 <div class="card-title">Total Items</div>
                 <div class="card-value">{{ total_items }}</div>
             </div>
-            <div class="card" style="border-left: 4px solid var(--color-matched)">
+            <div class="card" style="border-left: 4px solid var(--color-matched)" data-status="MATCHED_OK">
                 <div class="card-title">Matched OK</div>
                 <div class="card-value" style="color: var(--color-matched)">{{ stats.MATCHED_OK }}</div>
             </div>
-            <div class="card" style="border-left: 4px solid var(--color-mrp)">
+            <div class="card" style="border-left: 4px solid var(--color-mrp)" data-status="MRP_MISMATCH">
                 <div class="card-title">MRP Mismatch</div>
                 <div class="card-value" style="color: var(--color-mrp)">{{ stats.MRP_MISMATCH }}</div>
             </div>
-            <div class="card" style="border-left: 4px solid var(--color-qty)">
+            <div class="card" style="border-left: 4px solid var(--color-qty)" data-status="QTY_MISMATCH">
                 <div class="card-title">Qty Mismatch</div>
                 <div class="card-value" style="color: var(--color-qty)">{{ stats.QTY_MISMATCH }}</div>
             </div>
-            <div class="card" style="border-left: 4px solid var(--color-amount)">
+            <div class="card" style="border-left: 4px solid var(--color-amount)" data-status="AMOUNT_MISMATCH">
                 <div class="card-title">Amount Mismatch</div>
                 <div class="card-value" style="color: var(--color-amount)">{{ stats.AMOUNT_MISMATCH }}</div>
             </div>
-            <div class="card" style="border-left: 4px solid var(--color-missing-cn)">
+            <div class="card" style="border-left: 4px solid var(--color-missing-cn)" data-status="MISSING_IN_CREDIT_NOTE">
                 <div class="card-title">Missing in Wholesaler</div>
                 <div class="card-value" style="color: var(--color-missing-cn)">{{ stats.MISSING_IN_CREDIT_NOTE }}</div>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--color-missing-v)" data-status="MISSING_IN_VOUCHER">
+                <div class="card-title">Missing in Voucher</div>
+                <div class="card-value" style="color: var(--color-missing-v)">{{ stats.MISSING_IN_VOUCHER }}</div>
             </div>
         </div>
 
@@ -266,7 +358,7 @@ HTML_REPORT_TEMPLATE = """
                 </thead>
                 <tbody>
                     {% for row in rows %}
-                    <tr>
+                    <tr data-status="{{ row.discrepancy_type }}">
                         <td>
                             {% if row.product_name_voucher %}
                                 <div class="original-value">{{ row.product_name_voucher }}</div>
@@ -331,17 +423,54 @@ HTML_REPORT_TEMPLATE = """
             </table>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.summary-grid .card');
+            const rows = document.querySelectorAll('table tbody tr');
+
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const targetStatus = card.getAttribute('data-status');
+                    
+                    // Toggle active class
+                    cards.forEach(c => c.classList.remove('active'));
+                    card.classList.add('active');
+
+                    // Filter rows
+                    rows.forEach(row => {
+                        const rowStatus = row.getAttribute('data-status');
+                        if (targetStatus === 'all' || rowStatus === targetStatus) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                });
+            });
+            
+            // Activate 'Total Items' card by default
+            const totalCard = document.querySelector('.summary-grid .card[data-status="all"]');
+            if (totalCard) totalCard.classList.add('active');
+        });
+    </script>
 </body>
 </html>
 """
 
-def generate_report(df_discrepancy: pd.DataFrame, output_path: str) -> None:
+def generate_report(
+    df_discrepancy: pd.DataFrame, 
+    output_path: str, 
+    voucher_path: str = None, 
+    credit_note_path: str = None
+) -> None:
     """
     Saves the discrepancy DataFrame as both a CSV and a styled HTML file.
     
     Args:
         df_discrepancy (pd.DataFrame): The reconciled DataFrame containing the discrepancy_type column.
         output_path (str): Base output path. Sub-reports (CSV and HTML) will append their extensions.
+        voucher_path (str, optional): Path to the source voucher file.
+        credit_note_path (str, optional): Path to the source credit note file.
         
     Raises:
         IOError: If files cannot be saved to the destination path.
@@ -354,6 +483,20 @@ def generate_report(df_discrepancy: pd.DataFrame, output_path: str) -> None:
         
         logger.info(f"Generating reports. Target CSV: {csv_path}, Target HTML: {html_path}")
         
+        # Convert voucher and credit note paths to absolute file:// URLs for the HTML report
+        abs_voucher_url = None
+        abs_credit_url = None
+        
+        if voucher_path:
+            abs_path = os.path.abspath(voucher_path)
+            abs_path_url = abs_path.replace("\\", "/")
+            abs_voucher_url = f"file:///{abs_path_url}"
+            
+        if credit_note_path:
+            abs_path = os.path.abspath(credit_note_path)
+            abs_path_url = abs_path.replace("\\", "/")
+            abs_credit_url = f"file:///{abs_path_url}"
+            
         # Ensure target directory exists
         out_dir = os.path.dirname(output_path)
         if out_dir:
@@ -402,7 +545,11 @@ def generate_report(df_discrepancy: pd.DataFrame, output_path: str) -> None:
             timestamp=timestamp_str,
             total_items=total_items,
             stats=stats,
-            rows=rows_to_render
+            rows=rows_to_render,
+            voucher_url=abs_voucher_url,
+            credit_note_url=abs_credit_url,
+            voucher_filename=os.path.basename(voucher_path) if voucher_path else None,
+            credit_note_filename=os.path.basename(credit_note_path) if credit_note_path else None
         )
         
         # Write HTML file

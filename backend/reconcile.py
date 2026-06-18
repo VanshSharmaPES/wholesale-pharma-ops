@@ -47,7 +47,12 @@ def run_reconciliation(voucher_path: str, credit_note_path: str, output_path: st
         df_discrepancies = detect_discrepancies(df_matched)
         
         # Step 5: Generate report
-        generate_report(df_discrepancies, output_path)
+        generate_report(
+            df_discrepancies,
+            output_path,
+            voucher_path=voucher_path,
+            credit_note_path=credit_note_path
+        )
         
         logger.info("Reconciliation process completed successfully!")
         
