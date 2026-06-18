@@ -7,5 +7,5 @@ Jinja2>=3.1.0
 
 # Expiry Return Reminder System dependencies
 APScheduler>=3.10.0
-twilio>=8.0.0
+requests>=2.0.0
 python-dotenv>=1.0.0

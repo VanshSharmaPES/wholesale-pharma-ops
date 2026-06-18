@@ -22,7 +22,7 @@ A specialized Python-based operations system designed for a wholesale pharmaceut
 
 ### Module 2: Expiry Return Reminder System
 * **Purpose**: Scan sales history in a local SQLite database, identify retailer-batch pairings approaching expiry within a configurable return window (default 90 days), and send one-time proactive WhatsApp reminders.
-* **Tech Stack**: `pandas`, `APScheduler`, `Twilio WhatsApp API`, `SQLite` (via Python standard `sqlite3`), `python-dotenv`
+* **Tech Stack**: `pandas`, `APScheduler`, `UltraMsg WhatsApp API`, `SQLite` (via Python standard `sqlite3`), `python-dotenv`
 
 ---
 
