@@ -6,6 +6,8 @@ Generates CSV and styled HTML discrepancy reports from the reconciliation engine
 
 import os
 import logging
+import base64
+import mimetypes
 from datetime import datetime
 import pandas as pd
 from jinja2 import Template
@@ -292,7 +294,7 @@ HTML_REPORT_TEMPLATE = """
             {% if voucher_url or credit_note_url %}
             <div class="source-files-container">
                 {% if voucher_url %}
-                <a href="{{ voucher_url }}" target="_blank" class="file-link-card">
+                <a href="{{ voucher_url }}" download="{{ voucher_filename }}" class="file-link-card" title="Download embedded {{ voucher_filename }}">
                     <span class="file-icon">📄</span>
                     <div class="file-details">
                         <span class="file-label">Source Retail Voucher</span>
@@ -301,7 +303,7 @@ HTML_REPORT_TEMPLATE = """
                 </a>
                 {% endif %}
                 {% if credit_note_url %}
-                <a href="{{ credit_note_url }}" target="_blank" class="file-link-card">
+                <a href="{{ credit_note_url }}" download="{{ credit_note_filename }}" class="file-link-card" title="Download embedded {{ credit_note_filename }}">
                     <span class="file-icon">🧾</span>
                     <div class="file-details">
                         <span class="file-label">Wholesaler Credit Note</span>
@@ -483,19 +485,31 @@ def generate_report(
         
         logger.info(f"Generating reports. Target CSV: {csv_path}, Target HTML: {html_path}")
         
-        # Convert voucher and credit note paths to absolute file:// URLs for the HTML report
+        # Embed voucher and credit note as base64 data URIs for the HTML report
         abs_voucher_url = None
         abs_credit_url = None
         
-        if voucher_path:
-            abs_path = os.path.abspath(voucher_path)
-            abs_path_url = abs_path.replace("\\", "/")
-            abs_voucher_url = f"file:///{abs_path_url}"
+        if voucher_path and os.path.exists(voucher_path):
+            try:
+                mime_type, _ = mimetypes.guess_type(voucher_path)
+                if not mime_type:
+                    mime_type = "application/octet-stream"
+                with open(voucher_path, "rb") as f:
+                    b64_data = base64.b64encode(f.read()).decode("utf-8")
+                abs_voucher_url = f"data:{mime_type};base64,{b64_data}"
+            except Exception as e:
+                logger.warning(f"Could not embed voucher file {voucher_path}: {e}")
             
-        if credit_note_path:
-            abs_path = os.path.abspath(credit_note_path)
-            abs_path_url = abs_path.replace("\\", "/")
-            abs_credit_url = f"file:///{abs_path_url}"
+        if credit_note_path and os.path.exists(credit_note_path):
+            try:
+                mime_type, _ = mimetypes.guess_type(credit_note_path)
+                if not mime_type:
+                    mime_type = "application/octet-stream"
+                with open(credit_note_path, "rb") as f:
+                    b64_data = base64.b64encode(f.read()).decode("utf-8")
+                abs_credit_url = f"data:{mime_type};base64,{b64_data}"
+            except Exception as e:
+                logger.warning(f"Could not embed credit note file {credit_note_path}: {e}")
             
         # Ensure target directory exists
         out_dir = os.path.dirname(output_path)
