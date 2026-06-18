@@ -294,7 +294,7 @@ HTML_REPORT_TEMPLATE = """
             {% if voucher_url or credit_note_url %}
             <div class="source-files-container">
                 {% if voucher_url %}
-                <a href="{{ voucher_url }}" download="{{ voucher_filename }}" class="file-link-card" title="Download embedded {{ voucher_filename }}">
+                <a href="#" id="voucher-file-link" data-file="{{ voucher_url }}" data-name="{{ voucher_filename }}" class="file-link-card" title="Open {{ voucher_filename }}">
                     <span class="file-icon">📄</span>
                     <div class="file-details">
                         <span class="file-label">Source Retail Voucher</span>
@@ -303,7 +303,7 @@ HTML_REPORT_TEMPLATE = """
                 </a>
                 {% endif %}
                 {% if credit_note_url %}
-                <a href="{{ credit_note_url }}" download="{{ credit_note_filename }}" class="file-link-card" title="Download embedded {{ credit_note_filename }}">
+                <a href="#" id="credit-note-file-link" data-file="{{ credit_note_url }}" data-name="{{ credit_note_filename }}" class="file-link-card" title="Open {{ credit_note_filename }}">
                     <span class="file-icon">🧾</span>
                     <div class="file-details">
                         <span class="file-label">Wholesaler Credit Note</span>
@@ -426,6 +426,35 @@ HTML_REPORT_TEMPLATE = """
         </div>
     </div>
     <script>
+        function openEmbeddedFile(dataUri, filename) {
+            try {
+                const parts = dataUri.split(',');
+                const contentType = parts[0].split(':')[1].split(';')[0];
+                const byteCharacters = atob(parts[1]);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {type: contentType});
+                const fileURL = URL.createObjectURL(blob);
+                
+                if (contentType === 'application/pdf') {
+                    window.open(fileURL, '_blank');
+                } else {
+                    const link = document.createElement('a');
+                    link.href = fileURL;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            } catch (e) {
+                console.error('Failed to open embedded file:', e);
+                alert('Could not open embedded file: ' + e.message);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const cards = document.querySelectorAll('.summary-grid .card');
             const rows = document.querySelectorAll('table tbody tr');
@@ -453,6 +482,23 @@ HTML_REPORT_TEMPLATE = """
             // Activate 'Total Items' card by default
             const totalCard = document.querySelector('.summary-grid .card[data-status="all"]');
             if (totalCard) totalCard.classList.add('active');
+
+            // Source files opening logic
+            const voucherLink = document.getElementById('voucher-file-link');
+            if (voucherLink) {
+                voucherLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openEmbeddedFile(voucherLink.getAttribute('data-file'), voucherLink.getAttribute('data-name'));
+                });
+            }
+
+            const creditLink = document.getElementById('credit-note-file-link');
+            if (creditLink) {
+                creditLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openEmbeddedFile(creditLink.getAttribute('data-file'), creditLink.getAttribute('data-name'));
+                });
+            }
         });
     </script>
 </body>
